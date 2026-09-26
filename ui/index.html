@@ -1,120 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>NFA Loader</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <div class="glow glow-a"></div>
-    <div class="glow glow-b"></div>
-    <div class="glow glow-c"></div>
-
     <header class="titlebar" data-tauri-drag-region>
-      <span class="tb-title" data-tauri-drag-region>NFA&nbsp;Loader</span>
-      <div class="tb-controls">
-        <button id="min-btn" class="tb-btn" title="Minimize">&#x2212;</button>
-        <button id="close-btn" class="tb-btn tb-close" title="Close">&#x2715;</button>
+      <span data-tauri-drag-region>NFA / LOADER</span>
+      <div class="window-controls">
+        <button id="min-btn" aria-label="Minimize" title="Minimize">−</button>
+        <button id="close-btn" aria-label="Close" title="Close">×</button>
       </div>
     </header>
-
-    <main class="content">
-      <section class="brand">
-        <img id="logo" class="brand-logo" src="logo.png" alt="logo" />
-        <div class="brand-text">
-          <h1>NFA Loader</h1>
-          <a class="brand-sub">shefu223.shop</a>
-        </div>
-        <span id="acct-count" class="pill pill-count">0 accounts</span>
+    <main>
+      <section class="intro">
+        <div class="eyebrow"><span class="status-dot"></span>LOCAL ACCOUNT MANAGER</div>
+        <h1>Your accounts.<br><span>One place.</span></h1>
+        <p>A simple Steam token loader. Independent of any shop.</p>
       </section>
-
-      <div id="admin-banner" class="admin-banner hidden">
-        <div>
-          <div class="ab-title">Not running as Administrator</div>
-          <div class="ab-sub">Logging in may fail. Restart elevated.</div>
+      <p id="preview-note" class="notice" hidden>Interface preview · sample accounts only. Steam is not connected.</p>
+      <p id="load-error" class="notice error" role="alert" hidden></p>
+      <form id="add-form" class="add-section">
+        <label for="add-input">Add an account</label>
+        <div class="input-row">
+          <input id="add-input" type="password" placeholder="username----token" autocomplete="off" spellcheck="false" maxlength="16384" aria-describedby="add-hint" required>
+          <button id="add-btn" class="primary" type="submit">Add <span aria-hidden="true">+</span></button>
         </div>
-        <button id="admin-restart" class="btn btn-danger btn-sm">Restart as Admin</button>
-      </div>
-
-      <section class="block">
-        <div class="label">ADD ACCOUNT</div>
-        <div class="add-row">
-          <div class="field">
-            <input id="add-input" type="text" spellcheck="false" autocomplete="off"
-                   placeholder="username----token" />
-          </div>
-          <button id="add-btn" class="btn btn-primary">Add</button>
-        </div>
-        <div class="hint">Long-press an account to rename or remove it.</div>
+        <p id="add-hint" class="hint">Use the Steam login name. Tokens stay on this PC.</p>
+      </form>
+      <section class="accounts-section" aria-labelledby="accounts-heading">
+        <div class="section-heading"><h2 id="accounts-heading">Accounts <span id="acct-count">0</span></h2><button id="clear-all-btn" class="text-button" disabled>Remove all</button></div>
+        <input id="search" type="search" placeholder="Find an account…" aria-label="Find an account" autocomplete="off">
+        <div id="account-list"></div>
+        <div id="empty-state" class="empty"><img src="mark.svg" alt="" width="32" height="32"><h3>No accounts yet</h3><p>Add your first account above to get started.</p></div>
+        <p id="no-results" class="empty" hidden>No matching accounts.</p>
       </section>
-
-      <section class="block grow">
-        <div class="label">YOUR ACCOUNTS</div>
-        <div id="account-list" class="account-list"></div>
-        <div id="empty-state" class="empty hidden">
-          <div class="empty-title">No accounts yet</div>
-          <div class="empty-sub">Paste a line above and press Add.</div>
-        </div>
-      </section>
-
-      <section class="footer">
-        <div class="footer-row">
-          <button id="logout-btn" class="btn btn-ghost">Log Out</button>
-          <button id="clear-steam-btn" class="btn btn-ghost">Clear Steam</button>
-        </div>
-        <button id="clear-all-btn" class="btn btn-ghost btn-wide">Clear All Accounts</button>
-      </section>
+      <footer><span class="privacy"><span class="status-dot"></span>Local & encrypted</span><button id="logout-btn" class="text-button">Close Steam / sign out <span aria-hidden="true">↗</span></button></footer>
     </main>
-
-    <div id="toast" class="toast"></div>
-
-    <div id="sheet-backdrop" class="backdrop hidden">
-      <div id="sheet" class="sheet"></div>
-    </div>
-
-    <div id="check-backdrop" class="backdrop hidden">
-      <div id="check-popup" class="popup"></div>
-    </div>
-
-    <div id="update-backdrop" class="backdrop center hidden">
-      <div id="update-popup" class="popup"></div>
-    </div>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+    <dialog id="dialog" aria-labelledby="dialog-title" aria-describedby="dialog-copy">
+      <form id="dialog-form">
+        <h2 id="dialog-title"></h2><p id="dialog-copy"></p>
+        <label id="rename-label" for="rename-input" hidden>Display name</label>
+        <input id="rename-input" type="text" maxlength="64" autocomplete="off" hidden>
+        <p id="dialog-error" class="error" role="alert" hidden></p>
+        <div class="dialog-actions"><button id="dialog-cancel" type="button">Cancel</button><button id="dialog-confirm" class="primary" type="submit">Continue</button></div>
+      </form>
+    </dialog>
   </div>
-
   <template id="card-tpl">
-    <div class="card">
-      <div class="accent"></div>
-      <div class="card-top">
-        <div class="avatar">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
-          </svg>
-        </div>
-        <div class="card-id">
-          <div class="card-name-row">
-            <span class="card-name"></span>
-            <span class="pill pill-active active-pill hidden">&#x25CF; ACTIVE</span>
-          </div>
-          <div class="card-steamid"></div>
-        </div>
-        <div class="card-actions">
-          <button class="btn btn-login"></button>
-          <button class="btn btn-check">&#x1F50D; Check</button>
-        </div>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-bottom">
-        <div class="added">
-          <div class="added-label">Added</div>
-          <div class="added-date"></div>
-        </div>
-        <div class="warranty"></div>
-      </div>
-    </div>
+    <article class="card">
+      <div class="account-avatar" aria-hidden="true"></div>
+      <div class="account-info"><div class="account-title"><h3></h3><span class="selected" hidden>Selected</span></div><p class="account-id"></p><p class="token-status"></p></div>
+      <div class="account-actions"><button class="login-btn">Load <span aria-hidden="true">↗</span></button><div class="secondary-actions"><button class="rename-btn" aria-label="Rename account" title="Rename">Rename</button><button class="remove-btn" aria-label="Remove account" title="Remove">Remove</button></div></div>
+    </article>
   </template>
-
   <script src="app.js"></script>
 </body>
 </html>

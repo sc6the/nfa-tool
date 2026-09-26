@@ -1,0 +1,34 @@
+(async () => {
+  const results = [];
+  const check = (condition, label) => { if (!condition) throw new Error(label); results.push(label); };
+  const tick = () => new Promise(resolve => setTimeout(resolve, 30));
+  const get = id => document.getElementById(id);
+  check(!get('empty-state').hidden, 'Empty state renders');
+  get('add-input').value = 'test_user----fake-token';
+  get('add-form').requestSubmit(); await tick();
+  check(document.querySelectorAll('.card').length === 1, 'Account added');
+  check(get('add-input').value === '', 'Token input cleared after save');
+  get('add-input').value = 'test_user----updated-fake-token';
+  get('add-form').requestSubmit(); await tick();
+  check(document.querySelectorAll('.card').length === 1, 'Duplicate token replaces existing account');
+  document.querySelector('.rename-btn').click();
+  get('rename-input').value = '<img src=x onerror=alert(1)>';
+  get('dialog-form').requestSubmit(); await tick();
+  check(document.querySelector('.account-title h3').textContent === '<img src=x onerror=alert(1)>' && !document.querySelector('.card img'), 'Display name rendered as text, without HTML injection');
+  check(document.querySelector('.account-id').textContent.startsWith('test_user'), 'Renaming preserves Steam login name');
+  get('search').value = 'not-a-match'; get('search').dispatchEvent(new Event('input'));
+  check(!get('no-results').hidden && !document.querySelector('.card'), 'Search empty state');
+  get('search').value = ''; get('search').dispatchEvent(new Event('input'));
+  document.querySelector('.login-btn').click();
+  get('dialog-cancel').click(); await tick();
+  check(!window.testCalls.includes('login'), 'Cancelled load makes no backend call');
+  document.querySelector('.login-btn').click(); get('dialog-form').requestSubmit(); await tick();
+  check(!document.querySelector('.selected').hidden, 'Confirmed load updates selected account');
+  window.failNextCommand = 'remove_account';
+  document.querySelector('.remove-btn').click(); get('dialog-form').requestSubmit(); await tick();
+  check(get('dialog').open && !get('dialog-error').hidden && document.querySelector('.card'), 'Save failure preserves account and shows error');
+  get('dialog-form').requestSubmit(); await tick();
+  check(!get('dialog').open && !get('empty-state').hidden, 'Retry removes account');
+  check(document.documentElement.scrollWidth <= innerWidth, 'No horizontal overflow');
+  return results;
+})()
